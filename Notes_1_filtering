@@ -1,0 +1,176 @@
+## 20190603 
+## PIRE omics workshop: BrownTrout filtering
+
+## This is a Turing-specific step
+enable_lmod
+
+##This loads vcftools
+module load vcftools
+
+
+vcftools --vcf populations.snps.vcf
+
+VCFtools - 0.1.16
+(C) Adam Auton and Anthony Marcketta 2009
+
+Parameters as interpreted:
+        --vcf populations.snps.vcf
+
+After filtering, kept 96 out of 96 Individuals
+After filtering, kept 84363 out of a possible 84363 Sites
+Run Time = 2.00 seconds
+
+vcftools --vcf populations.snps.vcf --missing-indv
+
+VCFtools - 0.1.16
+(C) Adam Auton and Anthony Marcketta 2009
+
+Parameters as interpreted:
+        --vcf populations.snps.vcf
+        --missing-indv
+
+After filtering, kept 96 out of 96 Individuals
+Outputting Individual Missingness
+After filtering, kept 84363 out of a possible 84363 Sites
+Run Time = 4.00 seconds
+
+ vcftools --vcf populations.snps.vcf --missing-site
+
+VCFtools - 0.1.16
+(C) Adam Auton and Anthony Marcketta 2009
+
+Parameters as interpreted:
+        --vcf populations.snps.vcf
+        --missing-site
+
+After filtering, kept 96 out of 96 Individuals
+Outputting Site Missingness
+After filtering, kept 84363 out of a possible 84363 Sites
+Run Time = 5.00 seconds
+
+## mawk cuts out indivs after vcftools, mawk is within dDocent, important: reload vcftools
+
+module load dDocent
+module load vcftools
+less out.imiss
+mawk '$5>0.4' out.imiss
+INDV    N_DATA  N_GENOTYPES_FILTERED    N_MISS  F_MISS
+2016-BRWN-139.1 84363   0       34524   0.409232
+2016-BRWN-147.1 84363   0       65587   0.777438
+2016-BRWN-150.1 84363   0       40702   0.482463
+2016-BRWN-151.1 84363   0       48929   0.579982
+2016-BRWN-154.1 84363   0       58131   0.689058
+2016-BRWN-159.1 84363   0       37432   0.443702
+2016-BRWN-162.1 84363   0       44598   0.528644
+16-05543.1      84363   0       69870   0.828207
+
+## cuts out first column from ^, outputs txt file
+[hpc-0097@coreV4-21-020 ustacks]$ mawk '$5>0.4' out.imiss | cut -f1 > chaka.indivs
+INDV
+2016-BRWN-139.1
+2016-BRWN-147.1
+2016-BRWN-150.1
+2016-BRWN-151.1
+2016-BRWN-154.1
+2016-BRWN-159.1
+2016-BRWN-162.1
+16-05543.1
+
+## retains individuals with <40% missing data, (--remove), --recode very very important
+
+vcftools --vcf populations.snps.vcf --remove chaka.indivs --recode --recode-INFO-all --out BTrout_40only
+
+VCFtools - 0.1.16
+(C) Adam Auton and Anthony Marcketta 2009
+
+Parameters as interpreted:
+        --vcf populations.snps.vcf
+        --remove chaka.indivs
+        --recode-INFO-all
+        --out BTrout_40only
+        --recode
+
+Excluding individuals in 'exclude' list
+After filtering, kept 88 out of 96 Individuals
+Outputting VCF file...
+After filtering, kept 84363 out of a possible 84363 Sites
+Run Time = 21.00 seconds
+
+## retaining loci with <20% missing data (--max-missing)
+
+vcftools --vcf BTrout_40only.recode.vcf --max-missing 0.80 --recode --recode-INFO-all --out BTrout_G80_40only
+
+VCFtools - 0.1.16
+(C) Adam Auton and Anthony Marcketta 2009
+
+Parameters as interpreted:
+        --vcf BTrout_40only.recode.vcf
+        --recode-INFO-all
+        --max-missing 0.8
+        --out BTrout_G80_40only
+        --recode
+
+After filtering, kept 88 out of 88 Individuals
+Outputting VCF file...
+After filtering, kept 48514 out of a possible 84363 Sites
+Run Time = 16.00 seconds
+
+##### next step is HDplot! Copy final vcf output file (BTrout_G80_40only) for Rstudio things!
+##### after Rstudioooooo:
+
+## this removes blacklisted individuals/loci based on HDplot output (blacklisted charat)
+vcftools --vcf BTrout_G80_
+BTrout_G80_40only.log*        BTrout_G80_40only.recode.vcf*
+[hpc-0097@coreV4-21-020 ustacks]$ vcftools --vcf BTrout_G80_40only.recode.vcf --exclude-positions hdplot_blacklist.txt --recode --recode-INFO-all --out BTrout_HD_G80_40only
+
+VCFtools - 0.1.16
+(C) Adam Auton and Anthony Marcketta 2009
+
+Parameters as interpreted:
+        --vcf BTrout_G80_40only.recode.vcf
+        --exclude-positions hdplot_blacklist.txt
+        --recode-INFO-all
+        --out BTrout_HD_G80_40only
+        --recode
+
+After filtering, kept 88 out of 88 Individuals
+Outputting VCF file...
+After filtering, kept 44518 out of a possible 48514 Sites
+Run Time = 13.00 seconds
+
+## this removes data with minor allele count eme (mac) >3 
+vcftools --vcf BTrout_HD_G80_40only.recode.vcf --mac 3 --recode --recode-INFO-all --out BTrout_mac_HD_G80_40only
+
+VCFtools - 0.1.16
+(C) Adam Auton and Anthony Marcketta 2009
+
+Parameters as interpreted:
+        --vcf BTrout_HD_G80_40only.recode.vcf
+        --recode-INFO-all
+        --mac 3
+        --out BTrout_mac_HD_G80_40only
+        --recode
+
+After filtering, kept 88 out of 88 Individuals
+Outputting VCF file...
+After filtering, kept 35587 out of a possible 44518 Sites
+Run Time = 11.00 seconds
+
+## this keeps only things with highest minor allele frequencies using python script
+python VCF_keep_highest_MAF.py
+
+
+## this is the final vcf to check last filtering
+vcftools --vcf BTrout_mac_HD_G80_40only.maf.vcf
+
+VCFtools - 0.1.16
+(C) Adam Auton and Anthony Marcketta 2009
+
+Parameters as interpreted:
+        --vcf BTrout_mac_HD_G80_40only.maf.vcf
+
+After filtering, kept 88 out of 88 Individuals
+After filtering, kept 22440 out of a possible 22440 Sites
+Run Time = 1.00 seconds
+
+## DONE

@@ -1,0 +1,11 @@
+## 20190604
+
+## use pgd spider to convert .maf.vcf file to genepop (see slurm file)
+
+## add something to first line of genepop files
+
+## make separate genepop files for source population and mixed population (BrownTrout-specific)
+
+## Open GeneClass
+## GeneClass: load source and mixed populations
+## GeneClass assigns individuals
